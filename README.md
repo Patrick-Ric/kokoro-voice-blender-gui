@@ -54,6 +54,7 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
    git clone https://github.com/Patrick-Ric/kokoro-voice-blender-gui.git
    cd kokoro-voice-blender-gui
 2. Create and activate a virtual environment:
+   ```bash
     python -m venv venv
     source venv/bin/activate  # On Windows: venv\Scripts\activate
 3. Install dependencies:
