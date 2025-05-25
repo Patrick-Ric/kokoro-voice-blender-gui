@@ -58,10 +58,12 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
     python -m venv venv
     source venv/bin/activate  # On Windows: venv\Scripts\activate
 3. Install dependencies:
+    ```bash
     pip install -r requirements.txt
 4. Ensure the Kokoro model files (kokoro.onnx, voices-v1.0.bin) are in the expected directory (default: /home/pg/Dokumente/Kokoro-82M/).
     Update the paths in kokoro_voice_blender_gui.py (model_path, voices_path, config_dir) if your setup differs.
 5. Run the application:
+    ```bash
     python kokoro_voice_blender_gui.py
    
    
