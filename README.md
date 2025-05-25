@@ -41,6 +41,9 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
 - **Speed Control**: Modify playback speed (0.1x to 3.0x) using a spin box.
 - **Reset Sliders**: Set all sliders to 0.00 to start fresh.
 
+## Screenshot
+![Voice Blender GUI](https://github.com/user-attachments/assets/7bcb3f72-a976-49b3-ad6c-22c686007a8e)
+
 ## Installation
 
 ### Prerequisites
