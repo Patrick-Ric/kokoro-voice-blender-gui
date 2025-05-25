@@ -1,0 +1,5 @@
+nano requirements.txtnano requirements.txtkokoro-onnx
+PyQt5>=5.15.0
+soundfile>=0.10.0
+pygame>=2.0.0
+numpy>=1.19.0

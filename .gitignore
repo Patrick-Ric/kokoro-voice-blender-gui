@@ -1,0 +1,17 @@
+# Model files
+*.onnx
+*.bin
+
+# Configuration and temporary files
+configs/
+*.wav
+__pycache__/
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
