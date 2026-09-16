@@ -1,4 +1,4 @@
-kokoro-onnx
+kokoro-onnx>=0.4.7
 PyQt5>=5.15.0
 numpy>=1.19.0
 soundfile>=0.10.0

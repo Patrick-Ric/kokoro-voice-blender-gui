@@ -48,7 +48,7 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
 ## Installation
 
 ### Prerequisites
-- Python 3.9–3.12
+- Python 3.10–3.13 (required: `kokoro-onnx>=0.4.7` needs Python ≥ 3.10; with Python 3.9 pip silently installs an old `kokoro-onnx 0.1.x` that cannot read `voices-v1.0.bin`)
 - Kokoro ONNX model files next to the script (**no renaming needed**: `kokoro-v1.0.onnx` as shipped upstream works, as do `kokoro.onnx` or any `kokoro*.onnx`; same for `voices*.bin`).
   Download: https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0
 - A compatible audio backend (e.g., `pygame` for playback)
