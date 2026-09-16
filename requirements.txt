@@ -3,4 +3,4 @@ PyQt5>=5.15.0
 numpy>=1.19.0
 soundfile>=0.10.0
 pygame>=2.0.0
-phonemizer-fork
+phonemizer-fork>=3.3.2
