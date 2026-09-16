@@ -1,6 +1,6 @@
-# Kokoro Voice Blender GUI
+# Kokoro Voice Blender GUI v1.1.0
 
-A PyQt5-based graphical user interface (GUI) for blending multiple voices using the Kokoro ONNX text-to-speech (TTS) model. This tool allows users to mix various voices with customizable weights, adjust playback speed, and save configurations for later use. It complements the [Kokoro TTS GUI](https://github.com/Patrick-Ric/kokoro-tts-gui) by sharing the same configuration directory (`/home/pg/Dokumente/Kokoro-82M/configs/` by default), enabling seamless voice mix exchanges between the two applications.
+A PyQt5-based graphical user interface (GUI) for blending multiple voices using the Kokoro ONNX text-to-speech (TTS) model. This tool allows users to mix various voices with customizable weights, adjust playback speed, and save configurations for later use. It complements the [Kokoro TTS GUI](https://github.com/Patrick-Ric/kokoro-tts-gui): place both scripts in the same directory and they share the `configs/` subdirectory, enabling seamless voice mix exchanges between the two applications.
 
 ## Features
 
@@ -10,7 +10,7 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
 - **Text Input**: Enter any text to be synthesized into speech via a text area.
 
 ### 2. Voice Blending with Sliders
-- **Multiple Voices**: Choose from a predefined list of 50+ voices (e.g., `af_alloy`, `im_nicola`, `zf_xiaoyi`).
+- **All Voices**: The voice list is read from `voices-v1.0.bin`, so it always matches the voices file (e.g., `af_heart`, `im_nicola`, `zf_xiaoyi`).
 - **Customizable Weights**: Adjust the contribution of each voice using sliders (range: 0.00 to 1.00).
 - **Normalization Option**:
   - **Enabled**: Automatically adjusts slider values to sum to 1.00, ensuring balanced blending.
@@ -31,15 +31,16 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
   - Controlled via "Auto-Loop Preview" and "Continuous Loop" checkboxes.
 
 ### 5. Configuration Management
-- **Save Config**: Save voice weights, normalization settings, slider layout, and speed to a JSON file in the `configs/` directory (default: `/home/pg/Dokumente/Kokoro-82M/configs/`).
+- **Save Config**: Save voice weights, normalization settings, slider layout, and speed to a JSON file in the `configs/` directory next to the script.
 - **Load Config**: Load previously saved configurations.
 - **Last Config**: Automatically saves the current state on exit and loads it on startup.
-- **Shared Configs**: Uses the same `configs/` directory as [Kokoro TTS GUI](https://github.com/Patrick-Ric/kokoro-tts-gui) for interoperability.
+- **Shared Configs**: Uses the same `configs/` directory as [Kokoro TTS GUI](https://github.com/Patrick-Ric/kokoro-tts-gui) for interoperability (when both scripts are in the same folder).
 
 ### 6. Customization Options
 - **Sliders per Row**: Adjust the GUI layout (1 to 5 sliders per row) for better usability.
-- **Speed Control**: Modify playback speed (0.1x to 3.0x) using a spin box.
+- **Speed Control**: Modify playback speed (0.5x to 2.0x, the range supported by kokoro-onnx) using a spin box.
 - **Reset Sliders**: Set all sliders to 0.00 to start fresh.
+- **CPU by default**: runs on any PC without a GPU (tested). NVIDIA GPU acceleration via `pip install "kokoro-onnx[gpu]"` should work automatically but is untested — feedback welcome.
 
 ## Screenshot
 ![Voice Blender GUI](https://github.com/user-attachments/assets/7bcb3f72-a976-49b3-ad6c-22c686007a8e)
@@ -47,8 +48,9 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
-- Kokoro ONNX model files (`kokoro.onnx`, `voices-v1.0.bin`) in a directory accessible to the application (e.g., `/home/pg/Dokumente/Kokoro-82M/`)
+- Python 3.9–3.12
+- Kokoro ONNX model files next to the script (**no renaming needed**: `kokoro-v1.0.onnx` as shipped upstream works, as do `kokoro.onnx` or any `kokoro*.onnx`; same for `voices*.bin`).
+  Download: https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0
 - A compatible audio backend (e.g., `pygame` for playback)
 
 ### Steps
@@ -56,17 +58,22 @@ The Kokoro Voice Blender GUI offers a rich set of features for voice blending an
    ```bash
    git clone https://github.com/Patrick-Ric/kokoro-voice-blender-gui.git
    cd kokoro-voice-blender-gui
+   ```
 2. Create and activate a virtual environment:
    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-3. Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-4. Ensure the Kokoro model files (kokoro.onnx, voices-v1.0.bin) are in the expected directory, in the same directory as the kokoro-voice-blender-gui. It is advisable to also have the “kokoro-tts-gui” in the same directory so that the mixed voices in the “/config” subdirectory can be easily swapped between the two programs (default: /home/pg/Dokumente/Kokoro-82M/).
-    Update the paths in kokoro_voice_blender_gui.py (model_path, voices_path, config_dir) if your setup differs.
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies (CPU-only — no NVIDIA/CUDA downloads):
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Optional, only for NVIDIA GPUs (adds ~1 GB CUDA libraries):
+   ```bash
+   pip install "kokoro-onnx[gpu]"
+   ```
+4. Place the model file (`kokoro-v1.0.onnx`) and `voices-v1.0.bin` next to the script. Tip: also place `kokoro_tts_gui.py` from the [Kokoro TTS GUI](https://github.com/Patrick-Ric/kokoro-tts-gui) in the same directory so both programs share the `configs/` subdirectory.
 5. Run the application:
-    ```bash
-    python kokoro_voice_blender_gui.py
-   
-   
+   ```bash
+   python kokoro_voice_blender_gui.py
+   ```

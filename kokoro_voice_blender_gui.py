@@ -1,7 +1,9 @@
 import sys
+import glob
 import json
 import os
 import random
+import tempfile
 import numpy as np
 try:
     import kokoro_onnx
@@ -20,6 +22,36 @@ from PyQt5.QtGui import QMouseEvent
 import soundfile as sf
 import pygame
 
+# Script-relative paths: the GUI works no matter where it is started from.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_CANDIDATES = ("kokoro.onnx", "kokoro-v1.0.onnx")
+VOICE_CANDIDATES = ("voices-v1.0.bin",)
+
+# kokoro-onnx supports speeds in 0.5-2.0; values outside clip or misbehave.
+MIN_SPEED = 0.5
+MAX_SPEED = 2.0
+
+
+def _resolve_asset(candidates, pattern):
+    """Return the path of the first existing candidate, else a glob fallback.
+
+    Raises FileNotFoundError listing what was searched if nothing matches.
+    """
+    for name in candidates:
+        path = os.path.join(BASE_DIR, name)
+        if os.path.exists(path):
+            return path
+    matches = sorted(
+        p for p in glob.glob(os.path.join(BASE_DIR, pattern))
+        if os.path.isfile(p)
+    )
+    if matches:
+        return matches[0]
+    searched = ", ".join(list(candidates) + [pattern])
+    raise FileNotFoundError(
+        f"No file found next to the script (searched: {searched})."
+    )
+
 class CustomSlider(QSlider):
     """Custom QSlider that jumps to the clicked position."""
     def mousePressEvent(self, event: QMouseEvent):
@@ -35,10 +67,23 @@ class KokoroVoiceBlender(QMainWindow):
         self.setWindowTitle("Kokoro Voice Blender")
         self.setGeometry(100, 100, 800, 700)
 
-        # Paths to model files
-        self.model_path = "/home/pg/Dokumente/Kokoro-82M/kokoro.onnx"
-        self.voices_path = "/home/pg/Dokumente/Kokoro-82M/voices-v1.0.bin"
-        self.config_dir = "/home/pg/Dokumente/Kokoro-82M/configs"
+        # Paths to model files (script-relative; upstream names accepted,
+        # no renaming needed: kokoro.onnx, kokoro-v1.0.onnx, kokoro*.onnx).
+        try:
+            self.model_path = _resolve_asset(MODEL_CANDIDATES, "kokoro*.onnx")
+            self.voices_path = _resolve_asset(VOICE_CANDIDATES, "voices*.bin")
+        except FileNotFoundError as e:
+            QMessageBox.critical(
+                None, "Error",
+                f"{e}\n\nPlace the model file (e.g. 'kokoro-v1.0.onnx') and "
+                "'voices-v1.0.bin' next to the script — no renaming needed.\n"
+                "Download: https://github.com/thewh1teagle/kokoro-onnx/"
+                "releases/tag/model-files-v1.0",
+            )
+            sys.exit(1)
+        # Configs live next to the script so both GUIs can share them when
+        # placed in the same directory.
+        self.config_dir = os.path.join(BASE_DIR, "configs")
         self.last_config_path = os.path.join(self.config_dir, "last_blender_config.json")
 
         # Initialize Kokoro pipeline (CPU only)
@@ -52,21 +97,26 @@ class KokoroVoiceBlender(QMainWindow):
             QMessageBox.critical(None, "Error", f"Failed to initialize Kokoro pipeline: {str(e)}")
             sys.exit(1)
 
-        # Available voices
-        self.voices = [
-            "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky",
-            "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa",
-            "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
-            "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
-            "ef_dora", "em_alex", "em_santa",
-            "ff_siwis",
-            "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
-            "if_sara", "im_nicola",
-            "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
-            "pf_dora", "pm_alex", "pm_santa",
-            "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
-            "zm_yunjian", "zm_yunxia", "zm_yunxi", "zm_yunyang"
-        ]
+        # Available voices: read from voices-v1.0.bin (a numpy archive) so
+        # the list always matches the voices file. Falls back to a static
+        # list only if reading fails (pipeline voices stay authoritative).
+        try:
+            self.voices = sorted(np.load(self.voices_path).files)
+        except Exception:
+            self.voices = [
+                "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky",
+                "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa",
+                "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
+                "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
+                "ef_dora", "em_alex", "em_santa",
+                "ff_siwis",
+                "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
+                "if_sara", "im_nicola",
+                "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
+                "pf_dora", "pm_alex", "pm_santa",
+                "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
+                "zm_yunjian", "zm_yunxia", "zm_yunxi", "zm_yunyang"
+            ]
 
         # Initialize sliders and labels
         self.sliders = {}
@@ -167,9 +217,13 @@ class KokoroVoiceBlender(QMainWindow):
         
         controls_layout.addWidget(QLabel("Speed:"))
         self.speed_spinbox = QDoubleSpinBox()
-        self.speed_spinbox.setRange(0.1, 3.0)
+        self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
         self.speed_spinbox.setValue(1.0)
         self.speed_spinbox.setSingleStep(0.1)
+        self.speed_spinbox.setToolTip(
+            f"Reading speed ({MIN_SPEED:.1f}-{MAX_SPEED:.1f}). "
+            "1.0 = normal, <1 slower, >1 faster."
+        )
         self.speed_spinbox.valueChanged.connect(self.update_speed)
         controls_layout.addWidget(self.speed_spinbox)
         
@@ -208,7 +262,15 @@ class KokoroVoiceBlender(QMainWindow):
         splitter.setSizes([100, 400, 100])
 
     def update_speed(self, value):
-        self.speed = value
+        self.speed = max(MIN_SPEED, min(MAX_SPEED, value))
+
+    def _clamp_speed(self):
+        """Clamp loaded speeds into the supported range (old configs may
+        contain 0.1-3.0 values from before the range was fixed)."""
+        self.speed = max(MIN_SPEED, min(MAX_SPEED, self.speed))
+        self.speed_spinbox.blockSignals(True)
+        self.speed_spinbox.setValue(self.speed)
+        self.speed_spinbox.blockSignals(False)
 
     def toggle_normalize_sliders(self, state):
         self.normalize_sliders = state == Qt.Checked
@@ -487,9 +549,9 @@ class KokoroVoiceBlender(QMainWindow):
                 self.columns = config.get("sliders_per_row", 1)
                 self.columns_combo.setCurrentText(str(self.columns))
                 
-                # Load speed setting
+                # Load speed setting (clamped to the supported range)
                 self.speed = config.get("speed", 1.0)
-                self.speed_spinbox.setValue(self.speed)
+                self._clamp_speed()
                 
                 if self.normalize_sliders:
                     self.adjust_sliders_to_sum_one(None)
@@ -524,9 +586,9 @@ class KokoroVoiceBlender(QMainWindow):
                 self.columns = config.get("sliders_per_row", 1)
                 self.columns_combo.setCurrentText(str(self.columns))
                 
-                # Load speed setting
+                # Load speed setting (clamped to the supported range)
                 self.speed = config.get("speed", 1.0)
-                self.speed_spinbox.setValue(self.speed)
+                self._clamp_speed()
                 
                 if self.normalize_sliders:
                     self.adjust_sliders_to_sum_one(None)
@@ -628,11 +690,12 @@ class KokoroVoiceBlender(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Voice not found: {str(e)}")
             return
 
-        temp_file = "temp_preview.wav"
-
+        temp_file = None
         try:
             # Synthesize audio
             samples, sr = self.pipeline.create(text, voice=voice_blend, speed=self.speed, lang="en-us")
+            fd, temp_file = tempfile.mkstemp(suffix=".wav")
+            os.close(fd)
             sf.write(temp_file, samples, sr)
 
             # Play audio
@@ -645,6 +708,18 @@ class KokoroVoiceBlender(QMainWindow):
         except Exception as e:
             if not auto_loop:
                 QMessageBox.critical(self, "Error", f"Failed to preview: {str(e)}")
+        finally:
+            try:
+                if pygame.mixer.get_init():
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.unload()
+            except Exception:
+                pass
+            if temp_file:
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
 
     def synthesize_and_save(self):
         # Stop auto-loop if running
